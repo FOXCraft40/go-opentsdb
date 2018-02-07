@@ -13,32 +13,36 @@ import (
 type Options struct {
 	// Host value for the opentsdb server
 	// Default: 127.0.0.1
-	Host string
-
-	// Port for the opentsdb server
-	// Default: 4242
-	Port int
+	Endpoint string
 
 	// Timeout for http client
 	// Default: no timeout
 	Timeout time.Duration
+
+	// Username for basic https auth
+	Username string
+
+	// Password for basic https auth
+	Password string
 }
 
 type Client struct {
 	url        *url.URL
 	httpClient *http.Client
 	tr         *http.Transport
+	username   string
+	password   string
 }
 
 func NewClient(opt Options) (*Client, error) {
-	if opt.Host == "" {
-		opt.Host = "127.0.0.1"
-	}
-	if opt.Port == 0 {
-		opt.Port = 4242
+	if opt.Endpoint == "" {
+		opt.Endpoint = "http://127.0.0.1:4242"
 	}
 
-	u, err := url.Parse(fmt.Sprintf("http://%s:%d", opt.Host, opt.Port))
+	endpoint := fmt.Sprintf("%s", opt.Endpoint)
+
+	u, err := url.Parse(endpoint)
+
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +56,8 @@ func NewClient(opt Options) (*Client, error) {
 			Transport: tr,
 		},
 		tr: tr,
+		username: opt.Username,
+		password: opt.Password,
 	}, nil
 }
 
@@ -91,6 +97,9 @@ func (c *Client) Put(bp *BatchPoints, params string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.username != "" {
+		req.SetBasicAuth(c.username, c.password)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -120,6 +129,9 @@ func (c *Client) Query(q *QueryParams) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if c.username != ""  {
+		req.SetBasicAuth(c.username, c.password)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

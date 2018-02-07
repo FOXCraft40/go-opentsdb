@@ -3,6 +3,7 @@ package opentsdb
 type Query struct {
 	Aggregator string            `json:"aggregator"`
 	Metric     string            `json:"metric"`
+	Downsample string            `json:"downsample,omitempty"`
 	Rate       bool              `json:"rate,omitempty"`
 	Tags       map[string]string `json:"tags,omitempty"`
 }
