@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"errors"
 )
 
 type Options struct {
@@ -55,11 +56,18 @@ func NewClient(opt Options) (*Client, error) {
 			Timeout:   opt.Timeout,
 			Transport: tr,
 		},
-		tr: tr,
+		tr:       tr,
 		username: opt.Username,
 		password: opt.Password,
 	}, nil
 }
+
+
+func (c *Client) SetPassword(password string) error {
+	c.password = password
+	return nil
+}
+
 
 func (c *Client) Close() error {
 	c.tr.CloseIdleConnections()
@@ -116,35 +124,35 @@ func (c *Client) Put(bp *BatchPoints, params string) ([]byte, error) {
 }
 
 func (c *Client) Query(q *QueryParams) ([]byte, error) {
+
 	data, err := json.Marshal(q)
 	if err != nil {
 		return nil, err
 	}
 
-	u := c.url
-	u.Path = "api/query"
-
-	req, err := http.NewRequest("POST", u.String(), bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if c.username != ""  {
-		req.SetBasicAuth(c.username, c.password)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := c.ExecRequest("POST", "api/query", data)
 	if err != nil {
 		return nil, err
 	}
 
 	return body, nil
+
+}
+
+func (c *Client) QueryDelete(q *QueryParams) ([]byte, error) {
+
+	data, err := json.Marshal(q)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.ExecRequest("DELETE", "api/query", data)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+
 }
 
 func (c *Client) Search() error {
@@ -159,8 +167,58 @@ func (c *Client) Stats() error {
 	return nil
 }
 
-func (c *Client) Suggest() error {
-	return nil
+func (c *Client) Suggest(s *SuggestParams) ([]string, error) {
+
+	data, err := json.Marshal(s)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.ExecRequest("POST", "api/suggest", data)
+	if err != nil {
+		return nil, err
+	}
+
+	values := make([]string, 0)
+
+	json.Unmarshal(body, &values)
+
+	return values, nil
+
+}
+
+func (c *Client) ExecRequest(requestType string, requestPath string, requestParams []byte) ([]byte, error) {
+
+	u := c.url
+	u.Path = requestPath
+
+	req, err := http.NewRequest(requestType, u.String(), bytes.NewReader(requestParams))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if c.username != "" {
+		req.SetBasicAuth(c.username, c.password)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 300 {
+		return nil, errors.New(resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+
 }
 
 func (c *Client) Tree() error {

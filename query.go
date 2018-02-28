@@ -8,6 +8,13 @@ type Query struct {
 	Tags       map[string]string `json:"tags,omitempty"`
 }
 
+type QueryResult struct {
+	Metric        string             `json:"metric"`
+	AggregateTags []string           `json:"aggregateTags,omitempty"`
+	Tags          map[string]string  `json:"tags"`
+	Dps           map[string]float64 `json:"dps"`
+}
+
 type QueryParams struct {
 	Start             interface{} `json:"start"`
 	End               interface{} `json:"end,omitempty"`
@@ -23,4 +30,10 @@ type QueryParams struct {
 
 func NewQueryParams() (*QueryParams, error) {
 	return &QueryParams{}, nil
+}
+
+type SuggestParams struct {
+	Type  string `json:"type"`
+	Match string `json:"q,omnitempty"`
+	Max   int    `json:"max,omitempty"`
 }
