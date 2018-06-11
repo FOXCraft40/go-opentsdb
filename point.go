@@ -63,3 +63,8 @@ func (bp *BatchPoints) AddPoint(p *Point) {
 func (bp *BatchPoints) ToJson() ([]byte, error) {
 	return json.Marshal(bp.Points)
 }
+
+func (bp *BatchPoints) Size() int {
+	return len(bp.Points)
+}
+
