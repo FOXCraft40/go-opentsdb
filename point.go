@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"sync"
 )
 
 type Point struct {
@@ -49,15 +50,18 @@ func NewPoint(metric string, timestamp int64, value interface{}, tags map[string
 }
 
 type BatchPoints struct {
+	sync.Mutex
 	Points []*Point `json:""`
 }
 
 func NewBatchPoints() *BatchPoints {
-	return &BatchPoints{}
+	return new(BatchPoints)
 }
 
 func (bp *BatchPoints) AddPoint(p *Point) {
+	bp.Lock()
 	bp.Points = append(bp.Points, p)
+	bp.Unlock()
 }
 
 func (bp *BatchPoints) ToJson() ([]byte, error) {
@@ -67,4 +71,3 @@ func (bp *BatchPoints) ToJson() ([]byte, error) {
 func (bp *BatchPoints) Size() int {
 	return len(bp.Points)
 }
-
