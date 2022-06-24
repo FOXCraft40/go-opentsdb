@@ -120,6 +120,11 @@ func (c *Client) Put(bp *BatchPoints, params string) ([]byte, error) {
 		return nil, err
 	}
 
+	// If StatusCode 4XX or 5XX -> error
+	if resp.StatusCode >= 400 {
+		return body, fmt.Errorf(resp.Status)
+	}
+	
 	return body, nil
 }
 
